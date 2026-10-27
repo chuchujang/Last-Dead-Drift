@@ -1,10 +1,9 @@
-
 const Ship = {
   // 배의 화면 위치
   x: 400,
   y: 300,
 
-  // 배의 방향 (라디안)
+  // 배의 방향
   angle: 0,
 
   // 회전 관성
@@ -20,17 +19,70 @@ const Ship = {
   maxReverseSpeed: -1.5,
   movementFriction: 0.985,
 
+  // 배의 체력
+  maxHealth: 100,
+  health: 100,
+
   // 배 이미지
-  image: new Image(),
+  images: [],
+  image: null,
+  currentImageState: 1,
   width: 80,
   height: 120,
 
+  // 초기 설정
   init() {
-    this.image.src = "ship.png";
+    this.images = [
+      new Image(),
+      new Image(),
+      new Image()
+    ];
+
+    this.images[0].src = "ship1.png";
+    this.images[1].src = "ship2.png";
+    this.images[2].src = "ship3.png";
+
+    this.image = this.images[0];
+    this.updateDamageImage();
   },
 
+  // 체력에 따라 배 이미지 선택
+  updateDamageImage() {
+    const healthRate = this.health / this.maxHealth;
+
+    let newState;
+
+    if (healthRate > 0.6) {
+      newState = 1;
+    } else if (healthRate > 0.3) {
+      newState = 2;
+    } else {
+      newState = 3;
+    }
+
+    this.currentImageState = newState;
+    this.image = this.images[newState - 1];
+  },
+
+  // 배가 피해를 입을 때 호출
+  takeDamage(amount) {
+    this.health = Math.max(0, this.health - amount);
+    this.updateDamageImage();
+  },
+
+  // 배 체력 회복
+  heal(amount) {
+    this.health = Math.min(
+      this.maxHealth,
+      this.health + amount
+    );
+
+    this.updateDamageImage();
+  },
+
+  // 키 입력에 따른 움직임
   update(keys) {
-    // A / D: 회전 가속
+    // A / D: 회전
     if (keys["a"]) {
       this.angularVelocity -= this.rotationAcceleration;
     }
@@ -39,49 +91,44 @@ const Ship = {
       this.angularVelocity += this.rotationAcceleration;
     }
 
-    // 회전 속도 제한
     this.angularVelocity = Math.max(
       -this.maxRotationSpeed,
       Math.min(this.maxRotationSpeed, this.angularVelocity)
     );
 
-    // 키를 놓으면 회전이 서서히 감속
     if (!keys["a"] && !keys["d"]) {
       this.angularVelocity *= this.rotationFriction;
     }
 
-    // 실제 방향 변경
     this.angle += this.angularVelocity;
 
-    // W: 전진 가속
+    // W: 전진
     if (keys["w"]) {
       this.velocity += this.acceleration;
     }
 
-    // S: 후진 가속
+    // S: 후진
     if (keys["s"]) {
       this.velocity -= this.acceleration;
     }
 
-    // 전진과 후진 속도 제한
     this.velocity = Math.max(
       this.maxReverseSpeed,
       Math.min(this.maxForwardSpeed, this.velocity)
     );
 
-    // 키를 놓으면 이동 속도가 서서히 감소
     if (!keys["w"] && !keys["s"]) {
       this.velocity *= this.movementFriction;
     }
 
-    // 이동 방향 계산
-    // 배의 뱃머리는 이미지 위쪽을 향한다고 가정
+    // 배의 이동 방향
     this.moveX = Math.sin(this.angle) * this.velocity;
     this.moveY = -Math.cos(this.angle) * this.velocity;
   },
 
+  // 화면에 배 그리기
   draw(ctx) {
-    // 배는 화면 중앙에 고정
+    // 배를 화면 중앙에 고정
     this.x = ctx.canvas.width / 2;
     this.y = ctx.canvas.height / 2;
 
@@ -89,7 +136,11 @@ const Ship = {
     ctx.translate(this.x, this.y);
     ctx.rotate(this.angle);
 
-    if (this.image.complete && this.image.naturalWidth > 0) {
+    if (
+      this.image &&
+      this.image.complete &&
+      this.image.naturalWidth > 0
+    ) {
       ctx.drawImage(
         this.image,
         -this.width / 2,
