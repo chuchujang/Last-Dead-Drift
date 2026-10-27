@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -13,15 +14,13 @@
       justify-content: center;
       align-items: center;
       height: 100vh;
-      overflow: hidden;
     }
 
     canvas {
       width: min(100vw, 800px);
       height: auto;
-      aspect-ratio: 4 / 3;
       background: #124e62;
-      border: 3px solid #789b9e;
+      border: 2px solid #789b9e;
     }
   </style>
 </head>
@@ -29,25 +28,16 @@
 
   <canvas id="game" width="800" height="600"></canvas>
 
+  <script src="ship.js"></script>
   <script>
     const canvas = document.getElementById("game");
     const ctx = canvas.getContext("2d");
-
-    // 플레이어 배
-    const ship = {
-      x: 400,
-      y: 300,
-      speed: 4,
-      size: 20
-    };
-
-    // 눌린 키 저장
     const keys = {};
 
     document.addEventListener("keydown", (event) => {
       keys[event.key.toLowerCase()] = true;
 
-      if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", " "].includes(event.key)) {
+      if (["a", "d"].includes(event.key.toLowerCase())) {
         event.preventDefault();
       }
     });
@@ -56,59 +46,14 @@
       keys[event.key.toLowerCase()] = false;
     });
 
-    // 게임 화면 그리기
-    function draw() {
-      // 바다
-      ctx.fillStyle = "#124e62";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    Ship.init();
 
-      // 바다의 물결 무늬
-      ctx.strokeStyle = "#23677a";
-      ctx.lineWidth = 2;
-
-      for (let y = 30; y < 600; y += 50) {
-        for (let x = 30; x < 800; x += 80) {
-          ctx.beginPath();
-          ctx.moveTo(x, y);
-          ctx.lineTo(x + 20, y + 5);
-          ctx.stroke();
-        }
-      }
-
-      // 배 몸체
-      ctx.fillStyle = "#b8a47a";
-      ctx.beginPath();
-      ctx.moveTo(ship.x, ship.y - ship.size);
-      ctx.lineTo(ship.x + ship.size * 0.7, ship.y + ship.size);
-      ctx.lineTo(ship.x - ship.size * 0.7, ship.y + ship.size);
-      ctx.closePath();
-      ctx.fill();
-
-      // 조타실
-      ctx.fillStyle = "#d9ded0";
-      ctx.fillRect(ship.x - 7, ship.y - 5, 14, 12);
-
-      // 조타실 창문
-      ctx.fillStyle = "#18343e";
-      ctx.fillRect(ship.x - 4, ship.y - 3, 8, 4);
-    }
-
-    // 게임 업데이트
-    function update() {
-      if (keys["arrowup"] || keys["w"]) ship.y -= ship.speed;
-      if (keys["arrowdown"] || keys["s"]) ship.y += ship.speed;
-      if (keys["arrowleft"] || keys["a"]) ship.x -= ship.speed;
-      if (keys["arrowright"] || keys["d"]) ship.x += ship.speed;
-
-      // 배가 화면 밖으로 나가지 않게 제한
-      ship.x = Math.max(ship.size, Math.min(canvas.width - ship.size, ship.x));
-      ship.y = Math.max(ship.size, Math.min(canvas.height - ship.size, ship.y));
-    }
-
-    // 게임 반복 실행
     function gameLoop() {
-      update();
-      draw();
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      Ship.update(keys);
+      Ship.draw(ctx);
+
       requestAnimationFrame(gameLoop);
     }
 
