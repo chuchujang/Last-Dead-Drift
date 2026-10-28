@@ -27,7 +27,7 @@ const Ship = {
   images: [],
   image: null,
   currentImageState: 1,
-  width: 80,
+  width: 40,
   height: 120,
 
   // 초기 설정
