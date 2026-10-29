@@ -1,16 +1,16 @@
+
 const Sea = {
-  // 바다 이미지 4개
   images: [],
   imageReady: false,
 
-  // 타일 하나의 크기
+  // 타일 한 개의 크기
   tileSize: 256,
 
   // 바다 배경의 이동 위치
   offsetX: 0,
   offsetY: 0,
 
-  // 타일 배치에 사용할 이미지 순서
+  // 타일 배치
   tiles: [],
 
   // 바다 이미지 불러오기
@@ -28,7 +28,6 @@ const Sea = {
       return img;
     });
 
-    // 이미지 4개가 모두 준비되면 배치 시작
     Promise.all(
       this.images.map((img) => {
         return new Promise((resolve, reject) => {
@@ -38,8 +37,11 @@ const Sea = {
           }
 
           img.onload = () => resolve();
+
           img.onerror = () => {
-            reject(new Error("바다 이미지 불러오기 실패: " + img.src));
+            reject(
+              new Error("바다 이미지 불러오기 실패: " + img.src)
+            );
           };
         });
       })
@@ -73,13 +75,11 @@ const Sea = {
   createTiles() {
     this.tiles = [];
 
-    // 넉넉한 크기의 바다 타일 배치표
     const columns = 9;
     const rows = 9;
 
     for (let y = 0; y < rows; y++) {
       for (let x = 0; x < columns; x++) {
-        // 각 줄마다 무작위 순서로 배치
         const shuffled = this.shuffleImages();
 
         this.tiles.push({
@@ -91,7 +91,7 @@ const Sea = {
     }
   },
 
-  // 배의 움직임에 따라 바다 이동
+  // 배의 움직임에 맞춰 바다 이동
   update(moveX, moveY) {
     this.offsetX -= moveX;
     this.offsetY -= moveY;
@@ -99,72 +99,69 @@ const Sea = {
 
   // 바다 배경 그리기
   draw(ctx) {
-    if (!this.imageReady) {
+    const width = ctx.canvas.width;
+    const height = ctx.canvas.height;
+    const size = this.tileSize;
+
+    // 이미지 로딩 중에는 임시 바다색 표시
+    if (!this.imageReady || this.tiles.length === 0) {
       ctx.fillStyle = "#123b4a";
-      ctx.fillRect(
-        0,
-        0,
-        ctx.canvas.width,
-        ctx.canvas.height
-      );
+      ctx.fillRect(0, 0, width, height);
       return;
     }
 
-    const width = ctx.canvas.width;
-    const height = ctx.canvas.height;
+    const columns = 9;
+    const rows = 9;
 
-    const worldWidth = 9 * this.tileSize;
-    const worldHeight = 9 * this.tileSize;
+    // 음수 위치에서도 올바르게 계산
+    const mod = (value, divisor) => {
+      return ((value % divisor) + divisor) % divisor;
+    };
 
-    // 배경이 무한히 이어지는 것처럼 반복
-    const startX =
-      ((this.offsetX % this.tileSize) + this.tileSize)
-      % this.tileSize - this.tileSize;
+    // 화면에 보이는 첫 타일의 위치
+    const startX = -mod(this.offsetX, size);
+    const startY = -mod(this.offsetY, size);
 
-    const startY =
-      ((this.offsetY % this.tileSize) + this.tileSize)
-      % this.tileSize - this.tileSize;
+    // 현재 배경이 어느 타일만큼 이동했는지 계산
+    const firstCol = Math.floor(this.offsetX / size);
+    const firstRow = Math.floor(this.offsetY / size);
 
-    const baseX =
-      ((this.offsetX % worldWidth) + worldWidth)
-      % worldWidth;
-
-    const baseY =
-      ((this.offsetY % worldHeight) + worldHeight)
-      % worldHeight;
-
+    // 화면 전체를 타일로 채우기
     for (
-      let screenY = startY, tileRow = 0;
+      let screenY = startY, rowIndex = 0;
       screenY < height;
-      screenY += this.tileSize, tileRow++
+      screenY += size, rowIndex++
     ) {
       for (
-        let screenX = startX, tileCol = 0;
+        let screenX = startX, colIndex = 0;
         screenX < width;
-        screenX += this.tileSize, tileCol++
+        screenX += size, colIndex++
       ) {
-        const worldX =
-          ((tileCol * this.tileSize - baseX) % worldWidth
-            + worldWidth) % worldWidth;
+        const worldCol = mod(
+          firstCol + colIndex,
+          columns
+        );
 
-        const worldY =
-          ((tileRow * this.tileSize - baseY) % worldHeight
-            + worldHeight) % worldHeight;
-
-        const col = Math.floor(worldX / this.tileSize);
-        const row = Math.floor(worldY / this.tileSize);
+        const worldRow = mod(
+          firstRow + rowIndex,
+          rows
+        );
 
         const tile = this.tiles[
-          row * 9 + col
+          worldRow * columns + worldCol
         ];
 
         if (tile && tile.image) {
+          // 소수점 좌표로 인한 틈을 줄이기
+          const drawX = Math.floor(screenX);
+          const drawY = Math.floor(screenY);
+
           ctx.drawImage(
             tile.image,
-            screenX,
-            screenY,
-            this.tileSize,
-            this.tileSize
+            drawX,
+            drawY,
+            size + 1,
+            size + 1
           );
         }
       }
