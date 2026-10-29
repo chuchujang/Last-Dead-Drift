@@ -1,16 +1,15 @@
-
 const Sea = {
   images: [],
   imageReady: false,
 
-  // 타일 한 개의 크기
+  // 바다 타일 한 칸의 크기
   tileSize: 256,
 
-  // 바다 배경의 이동 위치
+  // 바다의 이동 위치
   offsetX: 0,
   offsetY: 0,
 
-  // 타일 배치
+  // 바다 타일 목록
   tiles: [],
 
   // 바다 이미지 불러오기
@@ -55,7 +54,7 @@ const Sea = {
       });
   },
 
-  // 이미지 순서를 무작위로 섞기
+  // 이미지 순서 무작위로 섞기
   shuffleImages() {
     const shuffled = [...this.images];
 
@@ -83,27 +82,24 @@ const Sea = {
         const shuffled = this.shuffleImages();
 
         this.tiles.push({
-          x: x * this.tileSize,
-          y: y * this.tileSize,
           image: shuffled[(x + y) % shuffled.length]
         });
       }
     }
   },
 
-  // 배의 움직임에 맞춰 바다 이동
+  // 배의 이동에 따라 바다 움직이기
   update(moveX, moveY) {
     this.offsetX -= moveX;
     this.offsetY -= moveY;
   },
 
-  // 바다 배경 그리기
+  // 바다 그리기
   draw(ctx) {
     const width = ctx.canvas.width;
     const height = ctx.canvas.height;
     const size = this.tileSize;
 
-    // 이미지 로딩 중에는 임시 바다색 표시
     if (!this.imageReady || this.tiles.length === 0) {
       ctx.fillStyle = "#123b4a";
       ctx.fillRect(0, 0, width, height);
@@ -113,55 +109,50 @@ const Sea = {
     const columns = 9;
     const rows = 9;
 
-    // 음수 위치에서도 올바르게 계산
+    // 음수 좌표도 올바르게 계산
     const mod = (value, divisor) => {
       return ((value % divisor) + divisor) % divisor;
     };
 
-    // 화면에 보이는 첫 타일의 위치
-    const startX = -mod(this.offsetX, size);
-    const startY = -mod(this.offsetY, size);
+    // 화면 왼쪽 위에 해당하는 월드 타일 위치
+    const firstCol = Math.floor(-this.offsetX / size);
+    const firstRow = Math.floor(-this.offsetY / size);
 
-    // 현재 배경이 어느 타일만큼 이동했는지 계산
-    const firstCol = Math.floor(this.offsetX / size);
-    const firstRow = Math.floor(this.offsetY / size);
+    // 타일의 화면 위치를 정수로 맞춰 틈 방지
+    const startX = Math.floor(
+      this.offsetX + firstCol * size
+    );
 
-    // 화면 전체를 타일로 채우기
+    const startY = Math.floor(
+      this.offsetY + firstRow * size
+    );
+
+    // 픽셀 아트 이미지의 흐림 방지
+    ctx.imageSmoothingEnabled = false;
+
     for (
-      let screenY = startY, rowIndex = 0;
+      let screenY = startY, worldRow = firstRow;
       screenY < height;
-      screenY += size, rowIndex++
+      screenY += size, worldRow++
     ) {
       for (
-        let screenX = startX, colIndex = 0;
+        let screenX = startX, worldCol = firstCol;
         screenX < width;
-        screenX += size, colIndex++
+        screenX += size, worldCol++
       ) {
-        const worldCol = mod(
-          firstCol + colIndex,
-          columns
-        );
+        const col = mod(worldCol, columns);
+        const row = mod(worldRow, rows);
 
-        const worldRow = mod(
-          firstRow + rowIndex,
-          rows
-        );
-
-        const tile = this.tiles[
-          worldRow * columns + worldCol
-        ];
+        const tile = this.tiles[row * columns + col];
 
         if (tile && tile.image) {
-          // 소수점 좌표로 인한 틈을 줄이기
-          const drawX = Math.floor(screenX);
-          const drawY = Math.floor(screenY);
-
+          // 이웃한 타일끼리 2픽셀 겹쳐 그리기
           ctx.drawImage(
             tile.image,
-            drawX,
-            drawY,
-            size + 1,
-            size + 1
+            Math.floor(screenX),
+            Math.floor(screenY),
+            size + 2,
+            size + 2
           );
         }
       }
