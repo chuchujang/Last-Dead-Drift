@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -28,16 +27,19 @@
 
   <canvas id="game" width="800" height="600"></canvas>
 
+  <script src="sea.js"></script>
   <script src="ship.js"></script>
+
   <script>
     const canvas = document.getElementById("game");
     const ctx = canvas.getContext("2d");
     const keys = {};
 
     document.addEventListener("keydown", (event) => {
-      keys[event.key.toLowerCase()] = true;
+      const key = event.key.toLowerCase();
+      keys[key] = true;
 
-      if (["a", "d"].includes(event.key.toLowerCase())) {
+      if (["w", "a", "s", "d"].includes(key)) {
         event.preventDefault();
       }
     });
@@ -46,12 +48,21 @@
       keys[event.key.toLowerCase()] = false;
     });
 
+    // 배와 바다 초기화
+    Sea.init();
     Ship.init();
 
     function gameLoop() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-
+      // 1. 배의 움직임 계산
       Ship.update(keys);
+
+      // 2. 배의 움직임에 맞춰 바다 이동
+      Sea.update(Ship.moveX, Ship.moveY);
+
+      // 3. 바다를 먼저 그림
+      Sea.draw(ctx);
+
+      // 4. 바다 위에 배를 그림
       Ship.draw(ctx);
 
       requestAnimationFrame(gameLoop);
