@@ -1,290 +1,93 @@
 
-const Enemy = {
-    images: {},
-    enemies: [],
-    imageReady: false,
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>방사능 바다 생존 게임</title>
 
-    elapsedTime: 0,
-    spawnTimer: 0,
-    lastTime: 0,
-    spawnInterval: 1.5,
-
-    types: {
-        fish: {
-            hp: 2,
-            speed: 1,
-            size: 56,
-            damage: 1
-        },
-        pufferfish: {
-            hp: 5,
-            speed: 0.65,
-            size: 76,
-            damage: 2
-        },
-        seagull: {
-            hp: 2,
-            speed: 2,
-            size: 64,
-            damage: 1
-        },
-        turtle: {
-            hp: 18,
-            speed: 0.45,
-            size: 96,
-            damage: 2
-        },
-        shark: {
-            hp: 35,
-            speed: 1.35,
-            size: 128,
-            damage: 4
-        }
-    },
-
-    init() {
-        const files = {
-            fish: "fish.png",
-            pufferfish: "pufferfish.png",
-            seagull: "seagull.png",
-            turtle: "turtle.png",
-            shark: "shark.png"
-        };
-
-        for (const type in files) {
-            const img = new Image();
-            img.src = files[type];
-            this.images[type] = img;
-        }
-
-        this.imageReady = true;
-        this.lastTime = performance.now();
-    },
-
-    updateDifficulty() {
-        this.spawnInterval = Math.max(
-            0.5,
-            1.5 - this.elapsedTime / 600
-        );
-    },
-
-    chooseType() {
-        const time = this.elapsedTime;
-        const random = Math.random();
-
-        if (time < 120) {
-            return "fish";
-        }
-
-        if (time < 240) {
-            return random < 0.75 ? "fish" : "pufferfish";
-        }
-
-        if (time < 360) {
-            if (random < 0.45) return "fish";
-            if (random < 0.75) return "pufferfish";
-            return "seagull";
-        }
-
-        if (time < 480) {
-            if (random < 0.25) return "fish";
-            if (random < 0.50) return "pufferfish";
-            if (random < 0.75) return "seagull";
-            return "turtle";
-        }
-
-        if (random < 0.15) return "fish";
-        if (random < 0.35) return "pufferfish";
-        if (random < 0.55) return "seagull";
-        if (random < 0.75) return "turtle";
-        return "shark";
-    },
-
-    spawn(ctx) {
-        const type = this.chooseType();
-        const info = this.types[type];
-
-        const margin = 80;
-        const side = Math.floor(Math.random() * 4);
-
-        let x;
-        let y;
-
-        if (side === 0) {
-            x = Math.random() * ctx.canvas.width;
-            y = -margin;
-        } else if (side === 1) {
-            x = ctx.canvas.width + margin;
-            y = Math.random() * ctx.canvas.height;
-        } else if (side === 2) {
-            x = Math.random() * ctx.canvas.width;
-            y = ctx.canvas.height + margin;
-        } else {
-            x = -margin;
-            y = Math.random() * ctx.canvas.height;
-        }
-
-        this.enemies.push({
-            type: type,
-            x: x,
-            y: y,
-            hp: info.hp,
-            angle: 0,
-            size: info.size,
-            speed: info.speed,
-            damage: info.damage,
-            hitTimer: 0
-        });
-    },
-
-    update(targetX, targetY, ctx, moveX = 0, moveY = 0) {
-        const now = performance.now();
-        const dt = Math.min((now - this.lastTime) / 1000, 0.05);
-        this.lastTime = now;
-
-        if (this.elapsedTime >= 600) return;
-
-        this.elapsedTime += dt;
-        this.spawnTimer += dt;
-
-        this.updateDifficulty();
-
-        // 적 생성 제한 없음
-        while (this.spawnTimer >= this.spawnInterval) {
-            this.spawn(ctx);
-            this.spawnTimer -= this.spawnInterval;
-        }
-
-        // 1. 적들이 배를 향해 이동
-        for (const enemy of this.enemies) {
-            // 배가 움직이면 적도 반대 방향으로 이동
-            enemy.x -= moveX * 60 * dt;
-            enemy.y -= moveY * 60 * dt;
-
-            const dx = targetX - enemy.x;
-            const dy = targetY - enemy.y;
-            const distance = Math.sqrt(dx * dx + dy * dy);
-
-            if (distance > 0) {
-                // 배를 향하는 이동 방향
-                const moveAngle = Math.atan2(dy, dx);
-
-                enemy.x += Math.cos(moveAngle) * enemy.speed * 60 * dt;
-                enemy.y += Math.sin(moveAngle) * enemy.speed * 60 * dt;
-
-                // 원본 이미지가 아래쪽을 바라보므로 -90도 보정
-                enemy.angle = moveAngle - Math.PI / 2;
-            }
-        }
-
-        // 2. 몹끼리 겹치지 않도록 서로 밀어내기
-        // 여러 번 계산해서 겹침을 줄임
-        for (let pass = 0; pass < 2; pass++) {
-            for (let i = 0; i < this.enemies.length; i++) {
-                for (let j = i + 1; j < this.enemies.length; j++) {
-                    const enemy = this.enemies[i];
-                    const other = this.enemies[j];
-
-                    const dx = enemy.x - other.x;
-                    const dy = enemy.y - other.y;
-
-                    const distance = Math.sqrt(dx * dx + dy * dy);
-                    const minDistance = (enemy.size + other.size) / 2;
-
-                    if (distance < minDistance) {
-                        if (distance === 0) {
-                            enemy.x += 1;
-                            other.x -= 1;
-                            continue;
-                        }
-
-                        const overlap = minDistance - distance;
-                        const pushX = dx / distance;
-                        const pushY = dy / distance;
-
-                        enemy.x += pushX * overlap * 0.5;
-                        enemy.y += pushY * overlap * 0.5;
-
-                        other.x -= pushX * overlap * 0.5;
-                        other.y -= pushY * overlap * 0.5;
-                    }
-                }
-            }
-        }
-
-        // 3. 배와 몹의 충돌 확인
-        for (const enemy of this.enemies) {
-            const dx = targetX - enemy.x;
-            const dy = targetY - enemy.y;
-            const distance = Math.sqrt(dx * dx + dy * dy);
-
-            if (distance < enemy.size / 2 + 25) {
-                if (enemy.hitTimer <= 0) {
-                    Ship.takeDamage(enemy.damage);
-                    enemy.hitTimer = 1;
-                }
-            }
-
-            if (enemy.hitTimer > 0) {
-                enemy.hitTimer -= dt;
-            }
-        }
-    },
-
-    draw(ctx) {
-        for (const enemy of this.enemies) {
-            const img = this.images[enemy.type];
-
-            if (!img || !img.complete || img.naturalWidth === 0) {
-                continue;
-            }
-
-            // 원본 이미지의 가로·세로 비율 유지
-            const scale = enemy.size / Math.max(
-                img.naturalWidth,
-                img.naturalHeight
-            );
-
-            const width = img.naturalWidth * scale;
-            const height = img.naturalHeight * scale;
-
-            ctx.save();
-
-            ctx.translate(enemy.x, enemy.y);
-            ctx.rotate(enemy.angle);
-
-            ctx.drawImage(
-                img,
-                -width / 2,
-                -height / 2,
-                width,
-                height
-            );
-
-            ctx.restore();
-
-            // 거북이와 상어 체력 표시
-            if (enemy.type === "turtle" || enemy.type === "shark") {
-                const maxHp = this.types[enemy.type].hp;
-                const hpRatio = Math.max(0, enemy.hp / maxHp);
-                const barWidth = enemy.size;
-
-                ctx.fillStyle = "red";
-                ctx.fillRect(
-                    enemy.x - barWidth / 2,
-                    enemy.y - enemy.size / 2 - 10,
-                    barWidth,
-                    5
-                );
-
-                ctx.fillStyle = "lime";
-                ctx.fillRect(
-                    enemy.x - barWidth / 2,
-                    enemy.y - enemy.size / 2 - 10,
-                    barWidth * hpRatio,
-                    5
-                );
-            }
-        }
+  <style>
+    body {
+      margin: 0;
+      background: #071d2b;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
     }
-};
+
+    canvas {
+      width: min(100vw, 800px);
+      height: auto;
+      background: #124e62;
+      border: 2px solid #789b9e;
+    }
+  </style>
+</head>
+<body>
+
+  <canvas id="game" width="800" height="600"></canvas>
+
+  <!-- 게임 파일 불러오기 -->
+  <script src="sea.js"></script>
+  <script src="ship.js"></script>
+  <script src="enemy.js"></script>
+
+  <script>
+    const canvas = document.getElementById("game");
+    const ctx = canvas.getContext("2d");
+    const keys = {};
+
+    // 키보드 입력
+    document.addEventListener("keydown", (event) => {
+      const key = event.key.toLowerCase();
+      keys[key] = true;
+
+      if (["w", "a", "s", "d"].includes(key)) {
+        event.preventDefault();
+      }
+    });
+
+    document.addEventListener("keyup", (event) => {
+      keys[event.key.toLowerCase()] = false;
+    });
+
+    // 게임 초기화
+    Sea.init();
+    Ship.init();
+    Enemy.init();
+
+    // 게임 실행
+    function gameLoop() {
+
+      // 1. 배 움직임 계산
+      Ship.update(keys);
+
+      // 2. 바다 이동
+      Sea.update(Ship.moveX, Ship.moveY);
+
+      // 3. 적이 배를 추격하도록 계산
+      Enemy.update(
+        canvas.width / 2,
+        canvas.height / 2,
+        ctx
+      );
+
+      // 4. 바다 그리기
+      Sea.draw(ctx);
+
+      // 5. 적 그리기
+      Enemy.draw(ctx);
+
+      // 6. 배 그리기
+      Ship.draw(ctx);
+
+      // 다음 화면 갱신
+      requestAnimationFrame(gameLoop);
+    }
+
+    gameLoop();
+  </script>
+
+</body>
+</html>
