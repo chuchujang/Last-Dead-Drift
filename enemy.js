@@ -1,369 +1,244 @@
 
 const Enemy = {
-  images: {},
-  enemies: [],
-  imageReady: false,
+    images: {},
+    enemies: [],
+    imageReady: false,
 
-  // 10분 게임 난이도 설정
-  elapsedTime: 0,
-  spawnTimer: 0,
-  lastTime: 0,
-  spawnInterval: 1.5,
-  maxEnemies: 8,
+    elapsedTime: 0,
+    spawnTimer: 0,
+    lastTime: 0,
+    spawnInterval: 1.5,
 
-  // 적 종류별 능력치
-  // 크기는 기존의 2배
-  types: {
-    fish: {
-      name: "작은 물고기",
-      image: "fish.png",
-      hp: 2,
-      speed: 1.0,
-      size: 56,
-      damage: 1
+    types: {
+        fish: {
+            hp: 2,
+            speed: 1,
+            size: 56,
+            damage: 1
+        },
+        pufferfish: {
+            hp: 5,
+            speed: 0.65,
+            size: 76,
+            damage: 2
+        },
+        seagull: {
+            hp: 2,
+            speed: 2,
+            size: 64,
+            damage: 1
+        },
+        turtle: {
+            hp: 18,
+            speed: 0.45,
+            size: 96,
+            damage: 2
+        },
+        shark: {
+            hp: 35,
+            speed: 1.35,
+            size: 128,
+            damage: 4
+        }
     },
-    pufferfish: {
-      name: "복어",
-      image: "pufferfish.png",
-      hp: 5,
-      speed: 0.65,
-      size: 76,
-      damage: 2
-    },
-    seagull: {
-      name: "갈매기",
-      image: "seagull.png",
-      hp: 2,
-      speed: 2.0,
-      size: 64,
-      damage: 1
-    },
-    turtle: {
-      name: "거북이",
-      image: "turtle.png",
-      hp: 18,
-      speed: 0.45,
-      size: 96,
-      damage: 2
-    },
-    shark: {
-      name: "강화된 상어",
-      image: "shark.png",
-      hp: 35,
-      speed: 1.35,
-      size: 128,
-      damage: 4
-    }
-  },
 
-  // 적 이미지 불러오기
-  init() {
-    this.images = {};
-    this.enemies = [];
-    this.elapsedTime = 0;
-    this.spawnTimer = 0;
-    this.lastTime = 0;
-    this.imageReady = false;
+    init() {
+        const files = {
+            fish: "fish.png",
+            pufferfish: "pufferfish.png",
+            seagull: "seagull.png",
+            turtle: "turtle.png",
+            shark: "shark.png"
+        };
 
-    const filenames = [
-      this.types.fish.image,
-      this.types.pufferfish.image,
-      this.types.seagull.image,
-      this.types.turtle.image,
-      this.types.shark.image
-    ];
+        for (const type in files) {
+            const img = new Image();
+            img.src = files[type];
+            this.images[type] = img;
+        }
 
-    Promise.all(
-      filenames.map((filename) => {
-        return new Promise((resolve, reject) => {
-          const img = new Image();
-
-          img.onload = () => {
-            this.images[filename] = img;
-            resolve();
-          };
-
-          img.onerror = () => {
-            reject(
-              new Error("적 이미지 불러오기 실패: " + filename)
-            );
-          };
-
-          img.src = filename;
-        });
-      })
-    )
-      .then(() => {
         this.imageReady = true;
-        console.log("적 이미지 5종류 준비 완료!");
-      })
-      .catch((error) => {
-        console.error(error);
-      });
-  },
+        this.lastTime = performance.now();
+    },
 
-  // 시간에 따른 난이도 조절
-  updateDifficulty() {
-    const minutes = this.elapsedTime / 60;
+    updateDifficulty() {
+        this.spawnInterval = Math.max(
+            0.5,
+            1.5 - this.elapsedTime / 600
+        );
+    },
 
-    this.spawnInterval = Math.max(
-      0.5,
-      1.5 - minutes * 0.1
-    );
+    chooseType() {
+        const time = this.elapsedTime;
 
-    this.maxEnemies = Math.min(
-      50,
-      8 + Math.floor(this.elapsedTime / 12)
-    );
-  },
+        const random = Math.random();
 
-  // 시간에 맞는 적 선택
-  chooseType() {
-    const t = this.elapsedTime;
-    const roll = Math.random();
-
-    if (t < 120) {
-      return this.types.fish;
-    }
-
-    if (t < 240) {
-      if (roll < 0.75) return this.types.fish;
-      return this.types.pufferfish;
-    }
-
-    if (t < 360) {
-      if (roll < 0.50) return this.types.fish;
-      if (roll < 0.75) return this.types.pufferfish;
-      return this.types.seagull;
-    }
-
-    if (t < 480) {
-      if (roll < 0.35) return this.types.fish;
-      if (roll < 0.58) return this.types.pufferfish;
-      if (roll < 0.83) return this.types.seagull;
-      return this.types.turtle;
-    }
-
-    if (roll < 0.20) return this.types.fish;
-    if (roll < 0.38) return this.types.pufferfish;
-    if (roll < 0.62) return this.types.seagull;
-    if (roll < 0.80) return this.types.turtle;
-
-    return this.types.shark;
-  },
-
-  // 화면 가장자리에서 적 생성
-  spawn(ctx) {
-    const width = ctx.canvas.width;
-    const height = ctx.canvas.height;
-    const margin = 80;
-
-    const side = Math.floor(Math.random() * 4);
-
-    let x;
-    let y;
-
-    if (side === 0) {
-      x = Math.random() * width;
-      y = -margin;
-    } else if (side === 1) {
-      x = width + margin;
-      y = Math.random() * height;
-    } else if (side === 2) {
-      x = Math.random() * width;
-      y = height + margin;
-    } else {
-      x = -margin;
-      y = Math.random() * height;
-    }
-
-    const type = this.chooseType();
-
-    this.enemies.push({
-      type: type,
-      x: x,
-      y: y,
-      hp: type.hp,
-      maxHp: type.hp,
-      speed: type.speed,
-      size: type.size,
-      damage: type.damage,
-      exploding: false,
-      explosionTime: 0,
-      hitCooldown: 0
-    });
-  },
-
-  // 적 이동 및 배와의 충돌 확인
-  update(targetX, targetY, ctx, moveX = 0, moveY = 0) {
-    if (!this.imageReady) return;
-
-    const now = Date.now();
-
-    if (this.lastTime === 0) {
-      this.lastTime = now;
-      return;
-    }
-
-    const dt = Math.min(
-      (now - this.lastTime) / 1000,
-      0.05
-    );
-
-    this.lastTime = now;
-    this.elapsedTime += dt;
-
-    if (this.elapsedTime >= 600) {
-      this.elapsedTime = 600;
-      return;
-    }
-
-    this.updateDifficulty();
-
-    // 적 생성
-    this.spawnTimer += dt;
-
-    while (
-      this.spawnTimer >= this.spawnInterval &&
-      this.enemies.length < this.maxEnemies
-    ) {
-      this.spawn(ctx);
-      this.spawnTimer -= this.spawnInterval;
-    }
-
-    // 모든 적 이동
-    for (const enemy of this.enemies) {
-      if (enemy.exploding) {
-        enemy.explosionTime -= dt;
-
-        if (enemy.explosionTime <= 0) {
-          enemy.remove = true;
+        if (time < 120) {
+            return "fish";
         }
 
-        continue;
-      }
-
-      enemy.hitCooldown = Math.max(
-        0,
-        enemy.hitCooldown - dt
-      );
-
-      // 1. 배가 움직이면 적은 반대 방향으로 밀림
-      enemy.x -= moveX * 60 * dt;
-      enemy.y -= moveY * 60 * dt;
-
-      // 2. 적은 기존처럼 배를 추격
-      const dx = targetX - enemy.x;
-      const dy = targetY - enemy.y;
-      const distance = Math.hypot(dx, dy);
-
-      if (distance > 0) {
-        enemy.x +=
-          (dx / distance) * enemy.speed * 60 * dt;
-
-        enemy.y +=
-          (dy / distance) * enemy.speed * 60 * dt;
-      }
-
-      // 3. 배와 접촉했는지 확인
-      const collisionDistance = enemy.size / 2 + 20;
-
-      if (distance < collisionDistance) {
-        if (enemy.type === this.types.pufferfish) {
-          enemy.exploding = true;
-          enemy.explosionTime = 0.35;
-
-          if (
-            typeof Ship !== "undefined" &&
-            typeof Ship.takeDamage === "function"
-          ) {
-            Ship.takeDamage(enemy.damage);
-          }
-        } else if (
-          enemy.hitCooldown <= 0 &&
-          typeof Ship !== "undefined" &&
-          typeof Ship.takeDamage === "function"
-        ) {
-          Ship.takeDamage(enemy.damage);
-          enemy.hitCooldown = 1;
+        if (time < 240) {
+            return random < 0.75 ? "fish" : "pufferfish";
         }
-      }
+
+        if (time < 360) {
+            if (random < 0.45) return "fish";
+            if (random < 0.75) return "pufferfish";
+            return "seagull";
+        }
+
+        if (time < 480) {
+            if (random < 0.25) return "fish";
+            if (random < 0.50) return "pufferfish";
+            if (random < 0.75) return "seagull";
+            return "turtle";
+        }
+
+        if (random < 0.15) return "fish";
+        if (random < 0.35) return "pufferfish";
+        if (random < 0.55) return "seagull";
+        if (random < 0.75) return "turtle";
+        return "shark";
+    },
+
+    spawn(ctx) {
+        const type = this.chooseType();
+        const info = this.types[type];
+
+        const margin = 80;
+        const side = Math.floor(Math.random() * 4);
+
+        let x;
+        let y;
+
+        if (side === 0) {
+            x = Math.random() * ctx.canvas.width;
+            y = -margin;
+        } else if (side === 1) {
+            x = ctx.canvas.width + margin;
+            y = Math.random() * ctx.canvas.height;
+        } else if (side === 2) {
+            x = Math.random() * ctx.canvas.width;
+            y = ctx.canvas.height + margin;
+        } else {
+            x = -margin;
+            y = Math.random() * ctx.canvas.height;
+        }
+
+        this.enemies.push({
+            type: type,
+            x: x,
+            y: y,
+            hp: info.hp,
+            angle: 0,
+            size: info.size,
+            speed: info.speed,
+            damage: info.damage,
+            hitTimer: 0
+        });
+    },
+
+    update(targetX, targetY, ctx, moveX = 0, moveY = 0) {
+        const now = performance.now();
+        const dt = Math.min((now - this.lastTime) / 1000, 0.05);
+        this.lastTime = now;
+
+        if (this.elapsedTime >= 600) return;
+
+        this.elapsedTime += dt;
+        this.spawnTimer += dt;
+
+        this.updateDifficulty();
+
+        // 적 생성
+        while (this.spawnTimer >= this.spawnInterval) {
+            this.spawn(ctx);
+            this.spawnTimer -= this.spawnInterval;
+        }
+
+        for (let i = this.enemies.length - 1; i >= 0; i--) {
+            const enemy = this.enemies[i];
+
+            // 배가 움직이면 적도 반대 방향으로 이동
+            enemy.x -= moveX * 60 * dt;
+            enemy.y -= moveY * 60 * dt;
+
+            // 배와 적 사이의 방향 계산
+            const dx = targetX - enemy.x;
+            const dy = targetY - enemy.y;
+
+            // 적이 배를 바라보도록 회전
+            enemy.angle = Math.atan2(dy, dx);
+
+            const distance = Math.sqrt(dx * dx + dy * dy);
+
+            // 배를 향해 이동
+            if (distance > 0) {
+                enemy.x += Math.cos(enemy.angle) * enemy.speed * 60 * dt;
+                enemy.y += Math.sin(enemy.angle) * enemy.speed * 60 * dt;
+            }
+
+            // 배와 충돌했는지 확인
+            if (distance < enemy.size / 2 + 25) {
+                if (enemy.hitTimer <= 0) {
+                    Ship.takeDamage(enemy.damage);
+                    enemy.hitTimer = 1;
+                }
+            }
+
+            if (enemy.hitTimer > 0) {
+                enemy.hitTimer -= dt;
+            }
+        }
+    },
+
+    draw(ctx) {
+        for (const enemy of this.enemies) {
+            const img = this.images[enemy.type];
+
+            if (!img || !img.complete || img.naturalWidth === 0) {
+                continue;
+            }
+
+            ctx.save();
+
+            ctx.translate(enemy.x, enemy.y);
+
+            // 이미지가 오른쪽을 바라보는 기준으로 회전
+            ctx.rotate(enemy.angle);
+
+            ctx.drawImage(
+                img,
+                -enemy.size / 2,
+                -enemy.size / 2,
+                enemy.size,
+                enemy.size
+            );
+
+            ctx.restore();
+
+            // 거북이와 상어 체력 표시
+            if (enemy.type === "turtle" || enemy.type === "shark") {
+                const maxHp = this.types[enemy.type].hp;
+                const barWidth = enemy.size;
+                const hpRatio = Math.max(0, enemy.hp / maxHp);
+
+                ctx.fillStyle = "red";
+                ctx.fillRect(
+                    enemy.x - barWidth / 2,
+                    enemy.y - enemy.size / 2 - 10,
+                    barWidth,
+                    5
+                );
+
+                ctx.fillStyle = "lime";
+                ctx.fillRect(
+                    enemy.x - barWidth / 2,
+                    enemy.y - enemy.size / 2 - 10,
+                    barWidth * hpRatio,
+                    5
+                );
+            }
+        }
     }
-
-    this.enemies = this.enemies.filter(
-      (enemy) => !enemy.remove
-    );
-  },
-
-  // 적 그리기
-  draw(ctx) {
-    if (!this.imageReady) return;
-
-    for (const enemy of this.enemies) {
-      const img = this.images[enemy.type.image];
-
-      if (!img) continue;
-
-      if (enemy.exploding) {
-        const progress =
-          1 - enemy.explosionTime / 0.35;
-
-        ctx.beginPath();
-
-        ctx.arc(
-          enemy.x,
-          enemy.y,
-          enemy.size * progress + 8,
-          0,
-          Math.PI * 2
-        );
-
-        ctx.fillStyle = "rgba(120, 255, 60, 0.65)";
-        ctx.fill();
-
-        continue;
-      }
-
-      // 적 이미지 표시
-      ctx.drawImage(
-        img,
-        enemy.x - enemy.size / 2,
-        enemy.y - enemy.size / 2,
-        enemy.size,
-        enemy.size
-      );
-
-      // 거북이와 상어의 체력 막대
-      if (
-        enemy.type === this.types.turtle ||
-        enemy.type === this.types.shark
-      ) {
-        const barWidth = enemy.size;
-        const barHeight = 4;
-
-        const hpRatio = Math.max(
-          0,
-          enemy.hp / enemy.maxHp
-        );
-
-        ctx.fillStyle = "#442222";
-
-        ctx.fillRect(
-          enemy.x - barWidth / 2,
-          enemy.y - enemy.size / 2 - 8,
-          barWidth,
-          barHeight
-        );
-
-        ctx.fillStyle = "#55dd55";
-
-        ctx.fillRect(
-          enemy.x - barWidth / 2,
-          enemy.y - enemy.size / 2 - 8,
-          barWidth * hpRatio,
-          barHeight
-        );
-      }
-    }
-  }
 };
