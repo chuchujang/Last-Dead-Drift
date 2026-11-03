@@ -70,7 +70,6 @@ const Enemy = {
 
     chooseType() {
         const time = this.elapsedTime;
-
         const random = Math.random();
 
         if (time < 120) {
@@ -163,22 +162,24 @@ const Enemy = {
             enemy.x -= moveX * 60 * dt;
             enemy.y -= moveY * 60 * dt;
 
-            // 배와 적 사이의 방향 계산
+            // 배와 적 사이의 거리 계산
             const dx = targetX - enemy.x;
             const dy = targetY - enemy.y;
-
-            // 적이 배를 바라보도록 회전
-            enemy.angle = Math.atan2(dy, dx) + Math.PI / 2;
-
             const distance = Math.sqrt(dx * dx + dy * dy);
 
-            // 배를 향해 이동
+            // 배를 향하는 이동 방향 계산
             if (distance > 0) {
-                enemy.x += Math.cos(enemy.angle) * enemy.speed * 60 * dt;
-                enemy.y += Math.sin(enemy.angle) * enemy.speed * 60 * dt;
+                const moveAngle = Math.atan2(dy, dx);
+
+                enemy.x += Math.cos(moveAngle) * enemy.speed * 60 * dt;
+                enemy.y += Math.sin(moveAngle) * enemy.speed * 60 * dt;
+
+                // 이미지가 이동 방향을 바라보도록 회전
+                // 원본 이미지가 아래쪽을 바라보므로 90도 보정
+                enemy.angle = moveAngle + Math.PI / 2;
             }
 
-            // 배와 충돌했는지 확인
+            // 충돌 확인
             if (distance < enemy.size / 2 + 25) {
                 if (enemy.hitTimer <= 0) {
                     Ship.takeDamage(enemy.damage);
@@ -200,19 +201,26 @@ const Enemy = {
                 continue;
             }
 
+            // 원본 이미지 비율 유지
+            const scale = enemy.size / Math.max(
+                img.naturalWidth,
+                img.naturalHeight
+            );
+
+            const width = img.naturalWidth * scale;
+            const height = img.naturalHeight * scale;
+
             ctx.save();
 
             ctx.translate(enemy.x, enemy.y);
-
-            // 이미지가 오른쪽을 바라보는 기준으로 회전
             ctx.rotate(enemy.angle);
 
             ctx.drawImage(
                 img,
-                -enemy.size / 2,
-                -enemy.size / 2,
-                enemy.size,
-                enemy.size
+                -width / 2,
+                -height / 2,
+                width,
+                height
             );
 
             ctx.restore();
@@ -220,8 +228,8 @@ const Enemy = {
             // 거북이와 상어 체력 표시
             if (enemy.type === "turtle" || enemy.type === "shark") {
                 const maxHp = this.types[enemy.type].hp;
-                const barWidth = enemy.size;
                 const hpRatio = Math.max(0, enemy.hp / maxHp);
+                const barWidth = enemy.size;
 
                 ctx.fillStyle = "red";
                 ctx.fillRect(
