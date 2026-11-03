@@ -172,14 +172,13 @@ const Enemy = {
                 enemy.x += Math.cos(moveAngle) * enemy.speed * 60 * dt;
                 enemy.y += Math.sin(moveAngle) * enemy.speed * 60 * dt;
 
-                // 원본 이미지가 아래쪽을 바라보므로 -90도 보정
+                // 이미지 방향 유지
                 enemy.angle = moveAngle - Math.PI / 2;
             }
         }
 
-        // 2. 몹끼리 겹치지 않도록 서로 밀어내기
-        // 여러 번 계산해서 겹침을 줄임
-        for (let pass = 0; pass < 2; pass++) {
+        // 2. 몹끼리 겹치지 않도록 밀어내기
+        for (let pass = 0; pass < 4; pass++) {
             for (let i = 0; i < this.enemies.length; i++) {
                 for (let j = i + 1; j < this.enemies.length; j++) {
                     const enemy = this.enemies[i];
@@ -189,24 +188,34 @@ const Enemy = {
                     const dy = enemy.y - other.y;
 
                     const distance = Math.sqrt(dx * dx + dy * dy);
-                    const minDistance = (enemy.size + other.size) / 2;
+
+                    // 기존보다 작은 간격을 기준으로 사용
+                    const minDistance =
+                        (enemy.size + other.size) * 0.3;
 
                     if (distance < minDistance) {
+                        let pushX;
+                        let pushY;
+                        let overlap;
+
                         if (distance === 0) {
-                            enemy.x += 1;
-                            other.x -= 1;
-                            continue;
+                            pushX = 1;
+                            pushY = 0;
+                            overlap = minDistance;
+                        } else {
+                            pushX = dx / distance;
+                            pushY = dy / distance;
+                            overlap = minDistance - distance;
                         }
 
-                        const overlap = minDistance - distance;
-                        const pushX = dx / distance;
-                        const pushY = dy / distance;
+                        // 두 몹이 서로 반대 방향으로 밀려남
+                        const pushAmount = overlap * 0.5;
 
-                        enemy.x += pushX * overlap * 0.5;
-                        enemy.y += pushY * overlap * 0.5;
+                        enemy.x += pushX * pushAmount;
+                        enemy.y += pushY * pushAmount;
 
-                        other.x -= pushX * overlap * 0.5;
-                        other.y -= pushY * overlap * 0.5;
+                        other.x -= pushX * pushAmount;
+                        other.y -= pushY * pushAmount;
                     }
                 }
             }
@@ -239,7 +248,7 @@ const Enemy = {
                 continue;
             }
 
-            // 원본 이미지의 가로·세로 비율 유지
+            // 원본 이미지 비율 유지
             const scale = enemy.size / Math.max(
                 img.naturalWidth,
                 img.naturalHeight
