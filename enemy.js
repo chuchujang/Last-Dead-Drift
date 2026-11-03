@@ -149,37 +149,75 @@ const Enemy = {
 
         this.updateDifficulty();
 
-        // 적 생성
+        // 적 생성 제한 없음
         while (this.spawnTimer >= this.spawnInterval) {
             this.spawn(ctx);
             this.spawnTimer -= this.spawnInterval;
         }
 
-        for (let i = this.enemies.length - 1; i >= 0; i--) {
-            const enemy = this.enemies[i];
-
+        // 1. 적들이 배를 향해 이동
+        for (const enemy of this.enemies) {
             // 배가 움직이면 적도 반대 방향으로 이동
             enemy.x -= moveX * 60 * dt;
             enemy.y -= moveY * 60 * dt;
 
-            // 배와 적 사이의 거리 계산
             const dx = targetX - enemy.x;
             const dy = targetY - enemy.y;
             const distance = Math.sqrt(dx * dx + dy * dy);
 
-            // 배를 향하는 이동 방향 계산
             if (distance > 0) {
+                // 배를 향하는 이동 방향
                 const moveAngle = Math.atan2(dy, dx);
 
                 enemy.x += Math.cos(moveAngle) * enemy.speed * 60 * dt;
                 enemy.y += Math.sin(moveAngle) * enemy.speed * 60 * dt;
 
-                // 이미지가 이동 방향을 바라보도록 회전
-                // 원본 이미지가 아래쪽을 바라보므로 90도 보정
-                enemy.angle = moveAngle + Math.PI / 2;
+                // 원본 이미지가 아래쪽을 바라보므로 -90도 보정
+                enemy.angle = moveAngle - Math.PI / 2;
             }
+        }
 
-            // 충돌 확인
+        // 2. 몹끼리 겹치지 않도록 서로 밀어내기
+        // 여러 번 계산해서 겹침을 줄임
+        for (let pass = 0; pass < 2; pass++) {
+            for (let i = 0; i < this.enemies.length; i++) {
+                for (let j = i + 1; j < this.enemies.length; j++) {
+                    const enemy = this.enemies[i];
+                    const other = this.enemies[j];
+
+                    const dx = enemy.x - other.x;
+                    const dy = enemy.y - other.y;
+
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    const minDistance = (enemy.size + other.size) / 2;
+
+                    if (distance < minDistance) {
+                        if (distance === 0) {
+                            enemy.x += 1;
+                            other.x -= 1;
+                            continue;
+                        }
+
+                        const overlap = minDistance - distance;
+                        const pushX = dx / distance;
+                        const pushY = dy / distance;
+
+                        enemy.x += pushX * overlap * 0.5;
+                        enemy.y += pushY * overlap * 0.5;
+
+                        other.x -= pushX * overlap * 0.5;
+                        other.y -= pushY * overlap * 0.5;
+                    }
+                }
+            }
+        }
+
+        // 3. 배와 몹의 충돌 확인
+        for (const enemy of this.enemies) {
+            const dx = targetX - enemy.x;
+            const dy = targetY - enemy.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+
             if (distance < enemy.size / 2 + 25) {
                 if (enemy.hitTimer <= 0) {
                     Ship.takeDamage(enemy.damage);
@@ -201,7 +239,7 @@ const Enemy = {
                 continue;
             }
 
-            // 원본 이미지 비율 유지
+            // 원본 이미지의 가로·세로 비율 유지
             const scale = enemy.size / Math.max(
                 img.naturalWidth,
                 img.naturalHeight
