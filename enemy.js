@@ -168,7 +168,7 @@ const Enemy = {
             const dy = targetY - enemy.y;
 
             // 적이 배를 바라보도록 회전
-            enemy.angle = Math.atan2(dy, dx);
+            enemy.angle = Math.atan2(dy, dx) + Math.PI / 2;
 
             const distance = Math.sqrt(dx * dx + dy * dy);
 
