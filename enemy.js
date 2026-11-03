@@ -1,3 +1,4 @@
+
 const Enemy = {
   images: {},
   enemies: [],
@@ -11,13 +12,14 @@ const Enemy = {
   maxEnemies: 8,
 
   // 적 종류별 능력치
+  // 크기는 기존의 2배
   types: {
     fish: {
       name: "작은 물고기",
       image: "fish.png",
       hp: 2,
       speed: 1.0,
-      size: 28,
+      size: 56,
       damage: 1
     },
     pufferfish: {
@@ -25,7 +27,7 @@ const Enemy = {
       image: "pufferfish.png",
       hp: 5,
       speed: 0.65,
-      size: 38,
+      size: 76,
       damage: 2
     },
     seagull: {
@@ -33,7 +35,7 @@ const Enemy = {
       image: "seagull.png",
       hp: 2,
       speed: 2.0,
-      size: 32,
+      size: 64,
       damage: 1
     },
     turtle: {
@@ -41,7 +43,7 @@ const Enemy = {
       image: "turtle.png",
       hp: 18,
       speed: 0.45,
-      size: 48,
+      size: 96,
       damage: 2
     },
     shark: {
@@ -49,7 +51,7 @@ const Enemy = {
       image: "shark.png",
       hp: 35,
       speed: 1.35,
-      size: 64,
+      size: 128,
       damage: 4
     }
   },
@@ -104,13 +106,11 @@ const Enemy = {
   updateDifficulty() {
     const minutes = this.elapsedTime / 60;
 
-    // 처음 1.5초 간격, 후반에는 0.5초 간격
     this.spawnInterval = Math.max(
       0.5,
       1.5 - minutes * 0.1
     );
 
-    // 초반 8마리에서 후반 최대 50마리
     this.maxEnemies = Math.min(
       50,
       8 + Math.floor(this.elapsedTime / 12)
@@ -122,25 +122,21 @@ const Enemy = {
     const t = this.elapsedTime;
     const roll = Math.random();
 
-    // 0~2분: 작은 물고기만 등장
     if (t < 120) {
       return this.types.fish;
     }
 
-    // 2~4분: 복어 추가
     if (t < 240) {
       if (roll < 0.75) return this.types.fish;
       return this.types.pufferfish;
     }
 
-    // 4~6분: 갈매기 추가
     if (t < 360) {
       if (roll < 0.50) return this.types.fish;
       if (roll < 0.75) return this.types.pufferfish;
       return this.types.seagull;
     }
 
-    // 6~8분: 거북이 추가
     if (t < 480) {
       if (roll < 0.35) return this.types.fish;
       if (roll < 0.58) return this.types.pufferfish;
@@ -148,7 +144,6 @@ const Enemy = {
       return this.types.turtle;
     }
 
-    // 8~10분: 모든 적 등장, 상어 확률 증가
     if (roll < 0.20) return this.types.fish;
     if (roll < 0.38) return this.types.pufferfish;
     if (roll < 0.62) return this.types.seagull;
@@ -161,7 +156,7 @@ const Enemy = {
   spawn(ctx) {
     const width = ctx.canvas.width;
     const height = ctx.canvas.height;
-    const margin = 40;
+    const margin = 80;
 
     const side = Math.floor(Math.random() * 4);
 
@@ -200,7 +195,7 @@ const Enemy = {
   },
 
   // 적 이동 및 배와의 충돌 확인
-  update(targetX, targetY, ctx) {
+  update(targetX, targetY, ctx, moveX = 0, moveY = 0) {
     if (!this.imageReady) return;
 
     const now = Date.now();
@@ -210,7 +205,6 @@ const Enemy = {
       return;
     }
 
-    // 초 단위 경과 시간 계산
     const dt = Math.min(
       (now - this.lastTime) / 1000,
       0.05
@@ -219,7 +213,6 @@ const Enemy = {
     this.lastTime = now;
     this.elapsedTime += dt;
 
-    // 10분이 지나면 적 생성 중단
     if (this.elapsedTime >= 600) {
       this.elapsedTime = 600;
       return;
@@ -255,11 +248,15 @@ const Enemy = {
         enemy.hitCooldown - dt
       );
 
+      // 1. 배가 움직이면 적은 반대 방향으로 밀림
+      enemy.x -= moveX * 60 * dt;
+      enemy.y -= moveY * 60 * dt;
+
+      // 2. 적은 기존처럼 배를 추격
       const dx = targetX - enemy.x;
       const dy = targetY - enemy.y;
       const distance = Math.hypot(dx, dy);
 
-      // 배를 향해 추격
       if (distance > 0) {
         enemy.x +=
           (dx / distance) * enemy.speed * 60 * dt;
@@ -268,12 +265,11 @@ const Enemy = {
           (dy / distance) * enemy.speed * 60 * dt;
       }
 
-      // 배와 접촉했는지 확인
+      // 3. 배와 접촉했는지 확인
       const collisionDistance = enemy.size / 2 + 20;
 
       if (distance < collisionDistance) {
         if (enemy.type === this.types.pufferfish) {
-          // 복어 폭발
           enemy.exploding = true;
           enemy.explosionTime = 0.35;
 
@@ -309,7 +305,6 @@ const Enemy = {
       if (!img) continue;
 
       if (enemy.exploding) {
-        // 복어의 방사능 폭발 효과
         const progress =
           1 - enemy.explosionTime / 0.35;
 
