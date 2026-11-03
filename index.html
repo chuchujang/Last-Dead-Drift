@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -27,14 +28,17 @@
 
   <canvas id="game" width="800" height="600"></canvas>
 
+  <!-- 게임 파일 불러오기 -->
   <script src="sea.js"></script>
   <script src="ship.js"></script>
+  <script src="enemy.js"></script>
 
   <script>
     const canvas = document.getElementById("game");
     const ctx = canvas.getContext("2d");
     const keys = {};
 
+    // 키보드 입력
     document.addEventListener("keydown", (event) => {
       const key = event.key.toLowerCase();
       keys[key] = true;
@@ -48,23 +52,37 @@
       keys[event.key.toLowerCase()] = false;
     });
 
-    // 배와 바다 초기화
+    // 게임 초기화
     Sea.init();
     Ship.init();
+    Enemy.init();
 
+    // 게임 실행
     function gameLoop() {
-      // 1. 배의 움직임 계산
+
+      // 1. 배 움직임 계산
       Ship.update(keys);
 
-      // 2. 배의 움직임에 맞춰 바다 이동
+      // 2. 바다 이동
       Sea.update(Ship.moveX, Ship.moveY);
 
-      // 3. 바다를 먼저 그림
+      // 3. 적이 배를 추격하도록 계산
+      Enemy.update(
+        canvas.width / 2,
+        canvas.height / 2,
+        ctx
+      );
+
+      // 4. 바다 그리기
       Sea.draw(ctx);
 
-      // 4. 바다 위에 배를 그림
+      // 5. 적 그리기
+      Enemy.draw(ctx);
+
+      // 6. 배 그리기
       Ship.draw(ctx);
 
+      // 다음 화면 갱신
       requestAnimationFrame(gameLoop);
     }
 
