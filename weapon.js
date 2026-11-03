@@ -127,7 +127,4 @@ const Weapon = {
     }
   }
 };
-<script src="sea.js"></script>
-<script src="ship.js"></script>
-<script src="enemy.js"></script>
-<script src="weapon.js"></script>
+
