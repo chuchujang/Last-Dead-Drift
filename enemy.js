@@ -155,24 +155,23 @@ const Enemy = {
             this.spawnTimer -= this.spawnInterval;
         }
 
-        // 1. 적들이 배를 향해 이동
+        // 1. 적들이 배의 움직임에 따라 이동하고 배를 추적
         for (const enemy of this.enemies) {
-            // 배가 움직이면 적도 반대 방향으로 이동
-            enemy.x -= moveX * 60 * dt;
-            enemy.y -= moveY * 60 * dt;
+            // 배의 이동에 따른 적의 반대 방향 이동
+            enemy.x -= moveX * 60 * dt * 1.5;
+            enemy.y -= moveY * 60 * dt * 1.5;
 
+            // 적이 배를 향해 이동
             const dx = targetX - enemy.x;
             const dy = targetY - enemy.y;
             const distance = Math.sqrt(dx * dx + dy * dy);
 
             if (distance > 0) {
-                // 배를 향하는 이동 방향
                 const moveAngle = Math.atan2(dy, dx);
 
                 enemy.x += Math.cos(moveAngle) * enemy.speed * 60 * dt;
                 enemy.y += Math.sin(moveAngle) * enemy.speed * 60 * dt;
 
-                // 이미지 방향 유지
                 enemy.angle = moveAngle - Math.PI / 2;
             }
         }
@@ -189,7 +188,6 @@ const Enemy = {
 
                     const distance = Math.sqrt(dx * dx + dy * dy);
 
-                    // 기존보다 작은 간격을 기준으로 사용
                     const minDistance =
                         (enemy.size + other.size) * 0.3;
 
@@ -208,7 +206,6 @@ const Enemy = {
                             overlap = minDistance - distance;
                         }
 
-                        // 두 몹이 서로 반대 방향으로 밀려남
                         const pushAmount = overlap * 0.5;
 
                         enemy.x += pushX * pushAmount;
