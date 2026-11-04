@@ -32,7 +32,7 @@
   <script src="sea.js"></script>
   <script src="ship.js"></script>
   <script src="enemy.js"></script>
-
+  <script src="weapon.js"></script>
   <script>
     const canvas = document.getElementById("game");
     const ctx = canvas.getContext("2d");
@@ -74,13 +74,23 @@
         ctx
       );
 
+     // 자동 공격 업데이트
+     Weapon.update(
+      1 / 60,
+      canvas.width / 2,
+      canvas.height / 2
+     );
+      
       // 4. 바다 그리기
       Sea.draw(ctx);
 
       // 5. 적 그리기
       Enemy.draw(ctx);
 
-      // 6. 배 그리기
+      // 6. 총알 그리기
+      Weapon.draw(ctx);
+      
+      // 7. 배 그리기
       Ship.draw(ctx);
 
       // 다음 화면 갱신
