@@ -14,17 +14,35 @@
       justify-content: center;
       align-items: center;
       height: 100vh;
+      overflow: hidden;
     }
 
     canvas {
-      width: min(100vw, 800px);
+      width: min(100vw, calc(100vh * 4 / 3));
       height: auto;
+      aspect-ratio: 4 / 3;
       background: #124e62;
       border: 2px solid #789b9e;
+    }
+
+    #fullscreenButton {
+      position: fixed;
+      top: 12px;
+      right: 12px;
+      padding: 10px 16px;
+      font-size: 15px;
+      cursor: pointer;
+      z-index: 10;
+    }
+
+    body:fullscreen canvas {
+      width: min(100vw, calc(100vh * 4 / 3));
     }
   </style>
 </head>
 <body>
+
+  <button id="fullscreenButton">전체 화면</button>
 
   <canvas id="game" width="800" height="600"></canvas>
 
@@ -33,10 +51,20 @@
   <script src="ship.js"></script>
   <script src="enemy.js"></script>
   <script src="weapon.js"></script>
+
   <script>
     const canvas = document.getElementById("game");
     const ctx = canvas.getContext("2d");
     const keys = {};
+
+    // 전체 화면 버튼
+    document.getElementById("fullscreenButton").addEventListener("click", () => {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen();
+      } else {
+        document.exitFullscreen();
+      }
+    });
 
     // 키보드 입력
     document.addEventListener("keydown", (event) => {
@@ -74,13 +102,13 @@
         ctx
       );
 
-     // 자동 공격 업데이트
-     Weapon.update(
-      1 / 60,
-      canvas.width / 2,
-      canvas.height / 2
-     );
-      
+      // 자동 공격 업데이트
+      Weapon.update(
+        1 / 60,
+        canvas.width / 2,
+        canvas.height / 2
+      );
+
       // 4. 바다 그리기
       Sea.draw(ctx);
 
@@ -89,11 +117,10 @@
 
       // 6. 총알 그리기
       Weapon.draw(ctx);
-      
+
       // 7. 배 그리기
       Ship.draw(ctx);
 
-      // 다음 화면 갱신
       requestAnimationFrame(gameLoop);
     }
 
