@@ -149,19 +149,22 @@ const Enemy = {
 
         this.updateDifficulty();
 
-        // 적 생성 제한 없음
         while (this.spawnTimer >= this.spawnInterval) {
             this.spawn(ctx);
             this.spawnTimer -= this.spawnInterval;
         }
 
-        // 1. 적들이 배의 움직임에 따라 이동하고 배를 추적
-        for (const enemy of this.enemies) {
-            // 배의 이동에 따른 적의 반대 방향 이동
-            enemy.x -= moveX * 60 * dt * 1.5;
-            enemy.y -= moveY * 60 * dt * 1.5;
+        // 배의 실제 이동 방향을 직접 가져오기
+        const shipMoveX = Ship.moveX;
+        const shipMoveY = Ship.moveY;
 
-            // 적이 배를 향해 이동
+        // 1. 적 이동
+        for (const enemy of this.enemies) {
+            // 배가 움직인 반대 방향으로 적이 밀려남
+            enemy.x -= shipMoveX * 60 * dt * 1.5;
+            enemy.y -= shipMoveY * 60 * dt * 1.5;
+
+            // 적이 배를 추적
             const dx = targetX - enemy.x;
             const dy = targetY - enemy.y;
             const distance = Math.sqrt(dx * dx + dy * dy);
@@ -245,7 +248,6 @@ const Enemy = {
                 continue;
             }
 
-            // 원본 이미지 비율 유지
             const scale = enemy.size / Math.max(
                 img.naturalWidth,
                 img.naturalHeight
