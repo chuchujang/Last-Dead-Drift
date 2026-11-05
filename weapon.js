@@ -130,4 +130,3 @@ const Weapon = {
    }
  }
 };
-
