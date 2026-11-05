@@ -139,10 +139,10 @@ const Enemy = {
 
     update(targetX, targetY, ctx, moveX = 0, moveY = 0) {
 
-       // 체력이 0 이하이거나 제거 표시된 적 삭제
-       this.enemies = this.enemies.filter(
-           enemy => !enemy.remove && enemy.hp > 0
-       );
+        // 체력이 0 이하이거나 제거 표시된 적 삭제
+        this.enemies = this.enemies.filter(
+            enemy => !enemy.remove && enemy.hp > 0
+        );
 
         const now = performance.now();
         const dt = Math.min((now - this.lastTime) / 1000, 0.05);
@@ -164,11 +164,10 @@ const Enemy = {
         const shipMoveX = Ship.moveX;
         const shipMoveY = Ship.moveY;
 
-        // 1. 적 이동
+        // 1. 배가 움직이는 방향과 같은 방향으로 적 이동
         for (const enemy of this.enemies) {
-            // 배가 움직인 반대 방향으로 적이 밀려남
-            enemy.x -= shipMoveX * 60 * dt * 1.5;
-            enemy.y -= shipMoveY * 60 * dt * 1.5;
+            enemy.x += shipMoveX * 60 * dt * 1.5;
+            enemy.y += shipMoveY * 60 * dt * 1.5;
 
             // 적이 배를 추적
             const dx = targetX - enemy.x;
@@ -247,13 +246,14 @@ const Enemy = {
     },
 
     draw(ctx) {
-    for (const enemy of this.enemies) {
+        for (const enemy of this.enemies) {
 
-        if (enemy.remove || enemy.hp <= 0) {
-            continue;
-        }
+            if (enemy.remove || enemy.hp <= 0) {
+                continue;
+            }
 
-        const img = this.images[enemy.type];
+            const img = this.images[enemy.type];
+
             if (!img || !img.complete || img.naturalWidth === 0) {
                 continue;
             }
