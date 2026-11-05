@@ -118,13 +118,15 @@ const Weapon = {
     ctx.fillStyle = "#FFD83D";
 
     for (const bullet of this.bullets) {
-      ctx.fillRect(
-        bullet.x - this.bulletWidth / 2,
-        bullet.y - this.bulletHeight / 2,
-        this.bulletWidth,
-        this.bulletHeight
-      );
-    }
-  }
-};
+     ctx.beginPath();
+     ctx.arc(
+       bullet.x,
+       bullet.y,
+       this.bulletWidth / 2,
+       0,
+       Math.PI * 2
+     );
+     ctx.fill();
+   }
+ }
 
