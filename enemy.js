@@ -138,6 +138,13 @@ const Enemy = {
     },
 
     update(targetX, targetY, ctx, moveX = 0, moveY = 0) {
+
+       // 체력이 0 이하이거나 제거 표시된 적 삭제
+       this.enemies = this.enemies.filter(
+           enemy => !enemy.remove && enemy.hp > 0
+       );
+
+    const now = performance.now();
         const now = performance.now();
         const dt = Math.min((now - this.lastTime) / 1000, 0.05);
         this.lastTime = now;
