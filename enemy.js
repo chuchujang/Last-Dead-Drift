@@ -144,7 +144,6 @@ const Enemy = {
            enemy => !enemy.remove && enemy.hp > 0
        );
 
-    const now = performance.now();
         const now = performance.now();
         const dt = Math.min((now - this.lastTime) / 1000, 0.05);
         this.lastTime = now;
