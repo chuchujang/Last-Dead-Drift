@@ -248,9 +248,13 @@ const Enemy = {
     },
 
     draw(ctx) {
-        for (const enemy of this.enemies) {
-            const img = this.images[enemy.type];
+    for (const enemy of this.enemies) {
 
+        if (enemy.remove || enemy.hp <= 0) {
+            continue;
+        }
+
+        const img = this.images[enemy.type];
             if (!img || !img.complete || img.naturalWidth === 0) {
                 continue;
             }
