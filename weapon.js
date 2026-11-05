@@ -128,5 +128,6 @@ const Weapon = {
      );
      ctx.fill();
    }
- };
+ }
+};
 
